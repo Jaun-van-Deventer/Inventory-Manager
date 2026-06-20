@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-const API_URL = import.meta.env.VITE_API_URL;
 import '../styles/Dashboard.css';
+const API_URL = import.meta.env.VITE_API_URL;
 
 function Dashboard() {
   const [products, setProducts] = useState([]); 

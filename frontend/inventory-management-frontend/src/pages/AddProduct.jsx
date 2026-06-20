@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-const API_URL = import.meta.env.VITE_API_URL;
 import '../styles/AddProduct.css';
+const API_URL = import.meta.env.VITE_API_URL;
 
 function AddProduct() {
   const [name, setName] = useState('');
