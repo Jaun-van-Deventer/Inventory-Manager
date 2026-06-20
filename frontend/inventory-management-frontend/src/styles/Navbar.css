@@ -1,0 +1,23 @@
+.nav {
+    background: #282c34;
+    padding: 1rem;
+  }
+  
+  .ul {
+    display: flex;
+    list-style: none;
+    justify-content: space-around;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .li {
+    margin: 0 1rem;
+  }
+  
+  .link {
+    color: #61dafb;
+    text-decoration: none;
+    font-size: 1.2rem;
+  }
+  

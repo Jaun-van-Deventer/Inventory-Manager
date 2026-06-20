@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "aws-sdk": "^2.1692.0",
+    "mongodb": "^7.3.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

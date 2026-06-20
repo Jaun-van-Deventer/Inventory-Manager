@@ -1,0 +1,18 @@
+.dashboard-page {
+    padding: 20px;
+  }
+  
+  .dashboard-stats {
+    display: flex;
+    justify-content: space-around;
+  }
+  
+  .stat-item {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 20px;
+    width: 30%;
+    text-align: center;
+  }
+  
