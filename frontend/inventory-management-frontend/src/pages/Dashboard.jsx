@@ -1,34 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import '../styles/Dashboard.css';
-const API_URL = process.env.VITE_API_URL;
+import { fetchProducts, getProductsErrorMessage } from '../api/products';
 
 function Dashboard() {
-  const [products, setProducts] = useState([]); 
-  const [totalProducts, setTotalProducts] = useState(0); 
-  const [totalStock, setTotalStock] = useState(0);     
+  const [products, setProducts] = useState([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalStock, setTotalStock] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/api/products`); 
-        const products = response.data;
+    let isMounted = true;
 
-        setProducts(products);
-        setTotalProducts(products.length);
-        const stockSum = products.reduce((acc, product) => acc + product.stock, 0);
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      setError('');
+
+      try {
+        const fetchedProducts = await fetchProducts();
+        const safeProducts = Array.isArray(fetchedProducts) ? fetchedProducts : [];
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProducts(safeProducts);
+        setTotalProducts(safeProducts.length);
+        const stockSum = safeProducts.reduce(
+          (acc, product) => acc + Number(product.stock || 0),
+          0
+        );
         setTotalStock(stockSum);
       } catch (error) {
-        console.error('Error fetching dashboard data:', error); // Error handling
+        if (!isMounted) {
+          return;
+        }
+
+        setProducts([]);
+        setTotalProducts(0);
+        setTotalStock(0);
+        setError(getProductsErrorMessage(error));
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchDashboardData(); // Call the fetch function
-  }, []); // Empty dependency array to run only once
+    fetchDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const productList = Array.isArray(products) ? products : [];
 
   return (
     <div className="dashboard-page">
       <h1>Dashboard</h1>
+      {isLoading && <p className="status-message">Loading products...</p>}
+      {error && <p className="error-message">{error}</p>}
       <div className="dashboard-stats">
         <div className="stat-item">
           <h2>Total Products</h2>
@@ -39,28 +71,32 @@ function Dashboard() {
           <p>{totalStock}</p>
         </div>
       </div>
-{/* Display All Products */}
-<div className="product-list">
+      <div className="product-list">
         <h2>All Products</h2>
-        <ul>
-          {products.map(product => (
-            <li key={product._id} className="product-item">
-              <span><strong>{product.name}</strong> - {product.stock} in stock</span>
-              {product.whereToBuy && (
-                <span><strong>Where to Buy:</strong> {product.whereToBuy}</span>
-              )}
-              {product.description ? (
-                <span>
-                  <strong>Description:</strong> {product.description}
-                </span>
-              ) : (
-                <span>
-                  <strong>Description:</strong> No description available
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+        {!isLoading && !error && productList.length === 0 && (
+          <p className="status-message">No products found.</p>
+        )}
+        {productList.length > 0 && (
+          <ul>
+            {productList.map(product => (
+              <li key={product._id} className="product-item">
+                <span><strong>{product.name}</strong> - {product.stock} in stock</span>
+                {product.whereToBuy && (
+                  <span><strong>Where to Buy:</strong> {product.whereToBuy}</span>
+                )}
+                {product.description ? (
+                  <span>
+                    <strong>Description:</strong> {product.description}
+                  </span>
+                ) : (
+                  <span>
+                    <strong>Description:</strong> No description available
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

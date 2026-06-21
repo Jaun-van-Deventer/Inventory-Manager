@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Products.css';
-const API_URL = process.env.VITE_API_URL;
+import {
+  fetchProducts as fetchProductList,
+  getProductsErrorMessage,
+  getProductsUrl,
+} from '../api/products';
 
 function Products() {
   const [products, setProducts] = useState([]); 
@@ -9,29 +13,54 @@ function Products() {
   const [stockFilter, setStockFilter] = useState('all'); 
   const [sortOption, setSortOption] = useState('none'); 
   const [error, setError] = useState(''); 
+  const [isLoading, setIsLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    let isMounted = true;
+
+    const loadProducts = async () => {
+      setIsLoading(true);
+      setError('');
+
       try {
-      const response = await axios.get(`${API_URL}/api/products`); 
-        setProducts(response.data); 
+        const fetchedProducts = await fetchProductList();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProducts(Array.isArray(fetchedProducts) ? fetchedProducts : []);
       } catch (error) {
-        console.error('Error fetching products:', error); 
-        setError('Error fetching products');
+        if (!isMounted) {
+          return;
+        }
+
+        setProducts([]);
+        setError(getProductsErrorMessage(error));
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchProducts(); 
+    loadProducts(); 
+
+    return () => {
+      isMounted = false;
+    };
   }, []); 
 
   // Function to handle stock increment and decrement
   const updateStock = async (id, newStock) => {
     try {
-      await axios.put(`${API_URL}/api/products/${id}`, { stock: newStock }); 
-      setProducts(products.map(product => product._id === id ? { ...product, stock: newStock } : product)); // Update local state
+      await axios.put(`${getProductsUrl()}/${id}`, { stock: newStock }); 
+      setProducts((currentProducts) => {
+        const productList = Array.isArray(currentProducts) ? currentProducts : [];
+        return productList.map(product => product._id === id ? { ...product, stock: newStock } : product);
+      });
     } catch (error) {
-      console.error('Error updating stock:', error);
       setError('Error updating stock');
     }
   };
@@ -39,11 +68,12 @@ function Products() {
   // Function to delete a product
   const deleteProduct = async (id) => {
     try {
-      const response = await axios.delete(`${API_URL}/api/products/${id}`);
-      setProducts(products.filter(product => product._id !== id)); // Update the UI after successful deletion
-      console.log(response.data.message); 
+      await axios.delete(`${getProductsUrl()}/${id}`);
+      setProducts((currentProducts) => {
+        const productList = Array.isArray(currentProducts) ? currentProducts : [];
+        return productList.filter(product => product._id !== id);
+      });
     } catch (error) {
-      console.error('Error deleting product:', error); 
       setError('Error deleting product'); 
     }
   };
@@ -65,21 +95,25 @@ function Products() {
 
   const saveEdit = async () => {
     try {
-      await axios.put(`${API_URL}/api/products/${editingProduct._id}`, editingProduct);
+      await axios.put(`${getProductsUrl()}/${editingProduct._id}`, editingProduct);
       // Update the product list after successful edit
-      setProducts(products.map(product => product._id === editingProduct._id ? editingProduct : product));
+      setProducts((currentProducts) => {
+        const productList = Array.isArray(currentProducts) ? currentProducts : [];
+        return productList.map(product => product._id === editingProduct._id ? editingProduct : product);
+      });
       setEditingProduct(null);
     } catch (error) {
-      console.error("Failed to update product", error);
+      setError('Failed to update product');
     }
   };
 
   // Filter and sort products
-  const filteredAndSortedProducts = products
+  const productList = Array.isArray(products) ? products : [];
+  const filteredAndSortedProducts = productList
     .filter(product =>
-      (product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.whereToBuy && product.whereToBuy.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+      ((product.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ((product.whereToBuy || '').toLowerCase().includes(searchQuery.toLowerCase())) ||
+        ((product.description || '').toLowerCase().includes(searchQuery.toLowerCase()))) &&
       (stockFilter === 'all' || (stockFilter === 'in-stock' && product.stock > 0) || (stockFilter === 'out-of-stock' && product.stock === 0))
     )
     .sort((a, b) => {
@@ -95,6 +129,7 @@ function Products() {
   return (
     <div className="products-page">
       <h1>Products</h1>
+      {isLoading && <p className="status-message">Loading products...</p>}
       {error && <p className="error-message">{error}</p>} 
 
       {/* Search Bar */}
@@ -119,7 +154,6 @@ function Products() {
         <option value="high-stock">High Stock</option>
       </select>
 
-      <ul className="product-list">
       {editingProduct && (
         <div className="edit-form">
           <h3>Edit Product</h3>
@@ -155,6 +189,10 @@ function Products() {
           <button onClick={() => setEditingProduct(null)}>Cancel</button>
         </div>
       )}
+      <ul className="product-list">
+        {!isLoading && !error && filteredAndSortedProducts.length === 0 && (
+          <li className="status-message">No products found.</li>
+        )}
         {filteredAndSortedProducts.map(product => (
           <li key={product._id} className="product-item">
             <span><strong>Product:</strong> {product.name}</span>

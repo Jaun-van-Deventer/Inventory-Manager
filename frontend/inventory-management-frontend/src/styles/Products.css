@@ -96,3 +96,11 @@ button:hover {
 span {
   flex-grow: 1;
 }
+
+.error-message {
+  color: #b00020;
+}
+
+.status-message {
+  color: #555;
+}

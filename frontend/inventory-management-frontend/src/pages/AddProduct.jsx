@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/AddProduct.css';
-const API_URL = process.env.VITE_API_URL;
+import { getProductsUrl } from '../api/products';
 
 function AddProduct() {
   const [name, setName] = useState('');
@@ -35,7 +35,7 @@ function AddProduct() {
 
     try {
       const newProduct = { name, stock, whereToBuy, description };
-      const response = await axios.post(`${API_URL}/api/products`, newProduct);
+      const response = await axios.post(getProductsUrl(), newProduct);
       setSuccess(`Product added successfully: ${response.data.name}`);
       setName('');
       setStock(0);

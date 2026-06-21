@@ -15,4 +15,12 @@
     width: 30%;
     text-align: center;
   }
+
+  .error-message {
+    color: #b00020;
+  }
+
+  .status-message {
+    color: #555;
+  }
   
